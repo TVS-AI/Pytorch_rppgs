@@ -9,7 +9,7 @@ import numpy as np
 from model import model
 from preporcessing_faceDetect import DatasetDeepPhysUBFC
 from torch.utils.data import DataLoader
-
+from get_noise_estimates import get_noise_estimates
 from train import train
 from test import test
 
@@ -106,10 +106,6 @@ if __name__ == '__main__':
     if args.mode == 0:
         # Change Tensor & Split Data
         dataset = bp.dataset(A=appearance_data, M=motion_data, T=label)
-        # train_set, val_set = torch.utils.data.random_split(dataset,
-        #                                                    [int(np.floor(len(dataset) * 0.7)),
-        #                                                     int(np.ceil(len(dataset) * 0.3))],
-        #                                                    generator=torch.Generator().manual_seed(1))
         train_set, val_set = torch.utils.data.random_split(dataset,
                                                            [int(np.floor(len(dataset) * 0.7)),
                                                             int(np.ceil(len(dataset) * 0.3))])
@@ -122,8 +118,11 @@ if __name__ == '__main__':
         # Change Tensor & Split Data
         dataset = bp.dataset(A=appearance_data, M=motion_data, T=label)
         test_loader = DataLoader(dataset, batch_size=1, shuffle=False)
+        # test
         test(model=model, test_loader=test_loader, check_model=args.check_model, device=device)
     else:
         print('\nError! No such Data. Choose from preprocessing : 0.Train 1.Test')
 
+    mask_path = "/home/js/Desktop/Data/Pytorch_rppgs_save/preprocessing/mask/UBFC_mask_49.hdf5"
+    get_noise_estimates(mask_path)
 
