@@ -5,7 +5,8 @@ class appearance_model(torch.nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size):
         # Appearance model
         super().__init__()
-        self.a_conv1 = torch.nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=1, padding=1)
+        self.a_conv1 = torch.nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
+                                       stride=1, padding=1)
         self.a_batch_Normalization1 = torch.nn.BatchNorm2d(32)
         self.a_conv2 = torch.nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.a_batch_Normalization2 = torch.nn.BatchNorm2d(32)
@@ -209,3 +210,50 @@ class model(torch.nn.Module):
         out = self.fully(motion_output)
 
         return out, attention_mask1, attention_mask2
+
+
+class Denoising_LSTM(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.lstm1 = torch.nn.LSTM(input_size=4, hidden_size=128, num_layers=1, batch_first=True, bidirectional=False)
+        self.lstm2 = torch.nn.LSTM(input_size=128, hidden_size=128, num_layers=1, batch_first=True, bidirectional=False)
+        self.fc = torch.nn.Linear(128, 1)
+        self.timedist = TimeDistributed(self.fc)
+
+    def forward(self, noise):
+        # layer1 = self.lstm1(noise)
+        (LSTM_layer1, _) = self.lstm1(noise)
+        # RepeatVector - pytorch
+        LSTM_layer1 = LSTM_layer1[:, -1, :].unsqueeze(1).repeat(1, 60, 1)
+        # layer2 = self.lstm2(layer1)
+        (LSTM_layer2, _) = self.lstm2(LSTM_layer1)
+        # fc_layer = torch.tanh(self.fc(LSTM_layer2))
+        fully = torch.tanh(self.fc(LSTM_layer2))
+        # output = TimeDistributed(torch.tanh(self.fc(LSTM_layer2)))
+        output = self.timedist(fully)
+        return output
+
+
+class TimeDistributed(torch.nn.Module):
+    def __init__(self, module, batch_first=True):
+        super(TimeDistributed, self).__init__()
+        self.module = module
+        self.batch_first = batch_first
+
+    def forward(self, x):
+
+        if len(x.size()) <= 2:
+            return self.module(x)
+
+        # Squash samples and timesteps into a single axis
+        x_reshape = x.contiguous().view(-1, x.size(-1))  # (samples * timesteps, input_size)
+
+        y = self.module(x_reshape)
+
+        # We have to reshape Y
+        if self.batch_first:
+            y = y.contiguous().view(x.size(0), -1, y.size(-1))  # (samples, timesteps, output_size)
+        else:
+            y = y.view(-1, x.size(1), y.size(-1))  # (timesteps, samples, output_size)
+
+        return y

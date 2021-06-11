@@ -13,14 +13,14 @@ def get_noise_estimates(mask_path):
     # Data Load - mask.mat file
     Attention_mask_file = h5py.File(mask_path, 'r')
     Attention_mask1 = Attention_mask_file['Attention_mask1']
-    Attention_mask1 = Attention_mask1[:10000]
+    # Attention_mask1 = Attention_mask1[:10000]
     Attention_mask2 = Attention_mask_file['Attention_mask2']
-    Attention_mask2 = Attention_mask2[:10000]
+    # Attention_mask2 = Attention_mask2[:10000]
     Appearance = Attention_mask_file['Appearance']
-    Appearance = Appearance[:10000]
+    # Appearance = Appearance[:10000]
     Pulse_estimate = Attention_mask_file['Pulse_estimate']
     Pulse_estimate = np.transpose(Pulse_estimate).reshape(-1,1)
-    Pulse_estimate = Pulse_estimate[:10000]
+    # Pulse_estimate = Pulse_estimate[:10000]
     print('Data Load')
     print(len(Attention_mask1))
     # Inverse Attention Mask Parameter
@@ -34,7 +34,7 @@ def get_noise_estimates(mask_path):
 
     # Normalize
     for i in range(len(Attention_mask1)):
-        cv2.imshow("Attention_mask", Attention_mask1[i])
+        # cv2.imshow("Attention_mask", Attention_mask1[i])
         mask_tmp = Attention_mask1[i] - np.min(Attention_mask1[i])
         mask_tmp = mask_tmp / np.max(Attention_mask1[i])
 
@@ -44,7 +44,7 @@ def get_noise_estimates(mask_path):
         mask_noise_tmp = np.where(mask_noise_tmp > threshold, 0, 1.0)
 
         mask_noise[i] = mask_noise_tmp
-        cv2.imshow("Inverse Mask", mask_noise[i])
+        # cv2.imshow("Inverse Mask", mask_noise[i])
 
     mask_noise = np.squeeze(mask_noise)
     print('End Normalize')
@@ -79,13 +79,13 @@ def get_noise_estimates(mask_path):
         mask_noise_channel_mean_detrend = inference_preprocess.detrend(mask_noise_channel_mean, 100)
         mask_noise_channel_mean2 = filtfilt(b_pulse, a_pulse, np.double(mask_noise_channel_mean_detrend))
 
-        plt.rcParams["figure.figsize"] = (14, 5)
-        plt.plot(range(len(mask_noise_channel_mean_detrend[0:300])), mask_noise_channel_mean_detrend[0:300],
-                 label='Noise Estimate'+str(Channel))
-        plt.plot(range(len(mask_noise_channel_mean2[0:300])),
-                 mask_noise_channel_mean2[0:300], label='filter')
-        plt.legend(fontsize='x-large')
-        plt.show()
+        # plt.rcParams["figure.figsize"] = (14, 5)
+        # plt.plot(range(len(mask_noise_channel_mean_detrend[0:300])), mask_noise_channel_mean_detrend[0:300],
+        #          label='Noise Estimate'+str(Channel))
+        # plt.plot(range(len(mask_noise_channel_mean2[0:300])),
+        #          mask_noise_channel_mean2[0:300], label='filter')
+        # plt.legend(fontsize='x-large')
+        # plt.show()
 
         # rename variables to red, green, channel:
         if Channel == 0:
@@ -107,6 +107,7 @@ def get_noise_estimates(mask_path):
             mask_noise_blue_mean = mask_noise_channel_mean
             mask_noise_blue_mean2 = mask_noise_channel_mean2
             Noise_estimate.create_dataset('blue', data=mask_noise_blue_mean2)
+            Noise_estimate.create_dataset('Pulse_estimate', data=yptest_sub2)
             Noise_estimate.close()
             print('blue!')
 

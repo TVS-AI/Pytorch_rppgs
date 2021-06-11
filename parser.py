@@ -19,7 +19,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=int, default=0, help="0.CAN 1.MTTS-CAN 2.MetaPhys")
     # preprocessing
-    parser.add_argument('--preprocessing', type=int, default=0, help="0.False 1.True")
+    parser.add_argument('--preprocessing', type=int, default=3, help="0.False 1.True")
     # parameter
     parser.add_argument('--GPU_num', type=int, default=1, help="0.Tesla:0 1.Tesla:1")
     parser.add_argument('--loss', type=int, default=0, help="0.MSELoss 1.yet!")
@@ -32,9 +32,11 @@ if __name__ == '__main__':
     parser.add_argument('--checkpoint', type=str, default=dir_path + "/model_checkpoint",
                         help=dir_path + "/model_checkpoint")
     # test mode
-    parser.add_argument('--test_data', type=str, default=dir_path + "/preprocessing/test/UBFC_test_49.hdf5")
+    parser.add_argument('--test_data', type=str, default=dir_path + "/preprocessing/test/UBFC_train_Data.hdf5")
     parser.add_argument('--check_model', type=str, default=dir_path + "/model_checkpoint")
 
+    # Denoising
+    parser.add_argument('--LSTM', type=int, default=1, help="0.False 1.True")
     args = parser.parse_args()
 
     hyper_params = {
@@ -49,7 +51,8 @@ if __name__ == '__main__':
         "epoch": args.epoch,
         "checkpoint": args.checkpoint,
         "test_data": args.test_data,
-        "check_model": args.check_model
+        "check_model": args.check_model,
+        "LSTM": args.LSTM
     }
 
     device = torch.device('cuda:' + str(args.GPU_num)) if torch.cuda.is_available() else torch.device('cpu')
@@ -123,6 +126,6 @@ if __name__ == '__main__':
     else:
         print('\nError! No such Data. Choose from preprocessing : 0.Train 1.Test')
 
-    mask_path = "/home/js/Desktop/Data/Pytorch_rppgs_save/preprocessing/mask/UBFC_mask_49.hdf5"
+    mask_path = "/home/js/Desktop/Data/Pytorch_rppgs_save/preprocessing/mask/UBFC_mask_Data.hdf5"
     get_noise_estimates(mask_path)
 
