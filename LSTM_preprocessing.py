@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import h5py
 
+
 # Load Mask noise
 noise = h5py.File("/home/js/Desktop/Data/Pytorch_rppgs_save/preprocessing/mask/UBFC_mask_49_Noise.hdf5", 'r')
 
@@ -18,7 +19,7 @@ noise_pulse = noise_pulse / max(abs(noise_pulse))
 noise.close()
 
 # Load GT
-ground_truth = h5py.File('/home/js/Desktop/Data/Pytorch_rppgs_save/preprocessing/mask/UBFC_mask_Data.hdf5', 'r')
+ground_truth = h5py.File('/home/js/Desktop/Data/Pytorch_rppgs_save/preprocessing/mask/UBFC_mask_test_49.hdf5', 'r')
 GT = ground_truth['Ground_Truth']
 
 # plt
@@ -68,7 +69,7 @@ train_data[:, :, 2] = train_green
 train_data[:, :, 3] = train_pulse
 train_gt = train_gt.reshape(train_gt.shape[0], train_gt.shape[1], 1)
 
-train_data_set = h5py.File('/home/js/Desktop/Data/Pytorch_rppgs_save/preprocessing/noise/UBFC_noise_Data.hdf5', 'w')
+train_data_set = h5py.File('/home/js/Desktop/Data/Pytorch_rppgs_save/preprocessing/noise/UBFC_noise_test_49.hdf5', 'w')
 train_data_set.create_dataset('train', data=train_data)
 train_data_set.create_dataset('GT', data=train_gt)
 train_data_set.close()

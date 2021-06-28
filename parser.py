@@ -7,7 +7,7 @@ import bvpdataset as bp
 import numpy as np
 
 from model import model
-from preporcessing_faceDetect import DatasetDeepPhysUBFC
+from preporcessing_faceDetect import DatasetDeepPhysUBFC, DatasetDeepPhysCOHFACE
 from torch.utils.data import DataLoader
 from get_noise_estimates import get_noise_estimates
 from train import train
@@ -19,25 +19,27 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=int, default=0, help="0.CAN 1.MTTS-CAN 2.MetaPhys")
     # preprocessing
-    parser.add_argument('--preprocessing', type=int, default=3, help="0.False 1.True")
+    parser.add_argument('--preprocessing', type=int, default=2, help="0.False 1.True")
     # parameter
     parser.add_argument('--GPU_num', type=int, default=1, help="0.Tesla:0 1.Tesla:1")
     parser.add_argument('--loss', type=int, default=0, help="0.MSELoss 1.yet!")
     parser.add_argument('--optimizer', type=int, default=0, help="0.Adadelta 1.yet!")
-    parser.add_argument('--mode', type=int, default=1, help="0.Train 1.Test")
+    parser.add_argument('--mode', type=int, default=0, help="0.Train 1.Test")
     parser.add_argument('--batch_size', type=int, default=32, help="default 32")
     # train mode
-    parser.add_argument('--train_data', type=str, default=dir_path + "/preprocessing/train/UBFC_trainset_face.npz")
+    parser.add_argument('--train_data', type=str, default=dir_path + "/preprocessing/train/COHFACE_train.hdf5")
     parser.add_argument('--epoch', type=int, default=100, help="default 25")
     parser.add_argument('--checkpoint', type=str, default=dir_path + "/model_checkpoint",
                         help=dir_path + "/model_checkpoint")
     # test mode
-    parser.add_argument('--test_data', type=str, default=dir_path + "/preprocessing/test/UBFC_train_Data.hdf5")
+    parser.add_argument('--test_data', type=str, default=dir_path + "/preprocessing/train/COHFACE_train.hdf5")
     parser.add_argument('--check_model', type=str, default=dir_path + "/model_checkpoint")
 
     # Denoising
     parser.add_argument('--LSTM', type=int, default=1, help="0.False 1.True")
     args = parser.parse_args()
+
+    # args.preprocessing = int(input("Preprocessing : 0.False 1.True"))
 
     hyper_params = {
         "model": args.model,
@@ -88,20 +90,24 @@ if __name__ == '__main__':
     # Data Load
     dataset = None
     if args.preprocessing == 0:
+        args.mode = int(input("0.Train 1.Test : "))
         if args.mode == 0:
-            dataset = h5py.File(dir_path + '/preprocessing/train/UBFC_train_Data.hdf5', 'r')
-            print("Load : " + dir_path + "/preprocessing/train/UBFC_train_Data.hdf5")
+            print("Load : " + args.train_data)
+            dataset = h5py.File(args.train_data, 'r')
         elif args.mode == 1:
-            dataset = h5py.File(args.test_data, 'r')
             print("Load : " + args.test_data)
+            dataset = h5py.File(args.test_data, 'r')
         motion_data = dataset['output_video'][:, :, :, :3]
         appearance_data = dataset['output_video'][:, :, :, -3:]
         label = dataset['output_label'][:]
     elif args.preprocessing == 1:
-        dataset = DatasetDeepPhysUBFC()
+        dataset = DatasetDeepPhysCOHFACE()
+        # dataset = DatasetDeepPhysUBFC()
         dataset = dataset()
-        print("save : " + dir_path + "/preprocessing/train/UBFC_train_Data.hdf5")
+        print("save : " + dir_path + "/preprocessing/train/COHFACE_train.hdf5")
     else:
+        mask_path = "/home/js/Desktop/Data/Pytorch_rppgs_save/preprocessing/mask/COHFACE_mask_train.hdf5"
+        get_noise_estimates(mask_path)
         print('\nError! No such Data. Choose from preprocessing : 0.False 1.True')
 
     # Data Load
@@ -126,6 +132,4 @@ if __name__ == '__main__':
     else:
         print('\nError! No such Data. Choose from preprocessing : 0.Train 1.Test')
 
-    mask_path = "/home/js/Desktop/Data/Pytorch_rppgs_save/preprocessing/mask/UBFC_mask_Data.hdf5"
-    get_noise_estimates(mask_path)
 

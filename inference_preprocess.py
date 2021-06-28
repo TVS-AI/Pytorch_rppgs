@@ -16,7 +16,6 @@ def detrend(signal, Lambda):
         The detrended signal.
     """
     signal_length = len(signal)
-
     # observation matrix
     H = np.identity(signal_length)
 

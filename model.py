@@ -215,10 +215,10 @@ class model(torch.nn.Module):
 class Denoising_LSTM(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        self.lstm1 = torch.nn.LSTM(input_size=4, hidden_size=128, num_layers=1, batch_first=True, bidirectional=False)
-        self.lstm2 = torch.nn.LSTM(input_size=128, hidden_size=128, num_layers=1, batch_first=True, bidirectional=False)
+        self.lstm1 = torch.nn.LSTM(input_size=4, hidden_size=128, num_layers=1, batch_first=True)
+        self.lstm2 = torch.nn.LSTM(input_size=128, hidden_size=128, num_layers=1, batch_first=True)
         self.fc = torch.nn.Linear(128, 1)
-        self.timedist = TimeDistributed(self.fc)
+        self.timedist = TimeDistributed(torch.nn.Linear(1, 1))
 
     def forward(self, noise):
         # layer1 = self.lstm1(noise)
@@ -236,24 +236,19 @@ class Denoising_LSTM(torch.nn.Module):
 
 class TimeDistributed(torch.nn.Module):
     def __init__(self, module, batch_first=True):
-        super(TimeDistributed, self).__init__()
+        super().__init__()
         self.module = module
         self.batch_first = batch_first
 
     def forward(self, x):
-
         if len(x.size()) <= 2:
             return self.module(x)
-
         # Squash samples and timesteps into a single axis
         x_reshape = x.contiguous().view(-1, x.size(-1))  # (samples * timesteps, input_size)
-
         y = self.module(x_reshape)
-
         # We have to reshape Y
         if self.batch_first:
             y = y.contiguous().view(x.size(0), -1, y.size(-1))  # (samples, timesteps, output_size)
         else:
             y = y.view(-1, x.size(1), y.size(-1))  # (timesteps, samples, output_size)
-
         return y
