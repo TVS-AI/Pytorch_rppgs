@@ -9,6 +9,7 @@ from nets.models.PPNet import PPNet
 from nets.models.PhysNet import PhysNet
 from nets.models.PhysNet import PhysNet_2DCNN_LSTM
 from nets.models.Seq_GCN import Seq_GCN
+from nets.models.TEST import TEST
 
 NUM_FEATURES = 5
 NUM_CLASSES = 10
@@ -29,7 +30,7 @@ def get_model(model_name: str = "DeepPhys"):
     elif model_name == "PPNet":
         return PPNet()
     elif model_name == "GCN":
-        return Seq_GCN()
+        return TEST()#Seq_GCN()#TEST()#
     elif model_name == "AxisNet":
         return AxisNet(),PhysiologicalGenerator()
     else:

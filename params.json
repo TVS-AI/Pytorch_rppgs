@@ -23,14 +23,14 @@
         "train_ratio_comment" : "generate train dataset using train_ratio",
         "validation_ratio": 0.9,
         "validation_ratio_comment" : "split train dataset using validation_ratio",
-        "train_batch_size" : 16,
+        "train_batch_size" : 175,
         "train_batch_size_comment" :
                 [
                     "PhysNet_LSTM : 8",
                     "PPNET :  100"
                 ],
-        "train_shuffle" : 0,
-        "test_batch_size" : 16,
+        "train_shuffle" : 1,
+        "test_batch_size" : 175,
         "test_shuffle" : 0
     },
     "hyper_params":
@@ -45,7 +45,7 @@
                    "triplet_margin","triplet_margin_distance",
                    "PPNET : MSE"
                ],
-        "optimizer": "adam",
+        "optimizer": "ada_mw",
         "optimizer_comment":
                 [
                     "adam","sgd","rms_prop","ada_delta","ada_grad","ada_max",

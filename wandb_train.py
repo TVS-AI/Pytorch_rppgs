@@ -1,23 +1,26 @@
-import numpy as np
-from torch.autograd import Variable
-import torch
-from torch import einsum
-import torch.nn as nn
-import torch.nn.functional as F
-from einops import rearrange,repeat
-from einops.layers.torch import Rearrange
-import math
-from typing import Optional
+from dataset.dataset_loader import dataset_loader
+from torch.utils.data import DataLoader, random_split
+import wandb
+import os
 from self_attention_cv.common import expand_to_batch
 import torch
 from torch import nn
+from einops import rearrange,repeat
+import numpy as np
+from loss import loss_fn
+from optim import optimizer
+from torch.autograd import Variable
 
+hyperparameter_defaults = dict(
+    dropout = 0.5,
+    batch_size = 100,
+    learning_rate = 0.001,
+    epochs = 2,
+    )
 
+wandb.init(project="SeqNet",entity="daeyeolkim",config=hyperparameter_defaults)
+config = wandb.config
 
-print(torch.__version__)
-# class Seq_GCN(nn.Module):
-#     def __init__(self):
-#         super(Seq_GCN, self).__init__()
 
 
 class Seq_GCN(nn.Module):
@@ -40,8 +43,8 @@ class Seq_GCN(nn.Module):
 
         self.batch_norm = nn.BatchNorm2d(32)
         self.relu = nn.ReLU(inplace=True)
-        self.dropout = nn.Dropout2d(0.5)
-        self.dropout_2 = nn.Dropout2d(0.5638209250254641)
+        self.dropout = nn.Dropout2d(config.dropout)
+        self.dropout_2 = nn.Dropout2d(0.2)
 
 
 
@@ -72,9 +75,9 @@ class ConvBlock(nn.Module):
         super(ConvBlock, self).__init__()
         self.seq = nn.Sequential(
             nn.Conv2d(in_channels=in_dim,out_channels=out_dim,kernel_size=(3,3),stride=(2,2),padding=(1,1)),
-            nn.LayerNorm(8),
+            nn.BatchNorm2d(out_dim),
             nn.Conv2d(in_channels=out_dim,out_channels=out_dim,kernel_size=(3,3),stride=(1,1),padding=(1,1)),
-            nn.LayerNorm(8),
+            nn.BatchNorm2d(out_dim),
             nn.ReLU()
         )
         # (25 - 3)/2 +1
@@ -87,9 +90,9 @@ class ConvBlock_main(nn.Module):
         super(ConvBlock_main, self).__init__()
         self.seq = nn.Sequential(
             nn.Conv2d(in_channels=in_dim,out_channels=out_dim,kernel_size=(3,3),stride=(2,2),padding=(1,1)),
-            nn.LayerNorm(64),
+            nn.BatchNorm2d(out_dim),
             nn.Conv2d(in_channels=out_dim,out_channels=out_dim,kernel_size=(3,3),stride=(2,2),padding=(1,1)),
-            nn.LayerNorm(32),
+            nn.BatchNorm2d(out_dim),
             nn.ReLU(inplace=True)
         )
         # (25 - 3)/2 +1
@@ -120,9 +123,9 @@ class MainPlan(nn.Module):
         # nn.Conv2d(in_channels=3, out_channels=32, kernel_size=(2,2),stride=2)
         self.main_conv2d = nn.Sequential(
             nn.Conv2d(in_channels=self.dim[1], out_channels=self.dim[1], kernel_size=(1, 32), stride=(1, 1), dilation=(1, 32)),
-            nn.LayerNorm(32),
+            nn.BatchNorm2d(self.dim[1]),
             nn.Conv2d(in_channels=self.dim[1], out_channels=self.dim[1], kernel_size=(3, 3), stride=(2, 2), padding=(1, 1)),
-            nn.LayerNorm(16),
+            nn.BatchNorm2d(self.dim[1]),
             nn.ReLU(inplace=True)
         )
         # self.main_vit = V(image_size=32,patch_size=4,nu)
@@ -149,15 +152,15 @@ class PttPlan(nn.Module):
         self.ptt_conv2d = nn.Sequential(
             nn.Conv2d(in_channels=self.dim[1], out_channels=self.dim[1], kernel_size=(1, 8), stride=(1, 1),
                       dilation=(1, 32)),
-            nn.LayerNorm(32),
+            nn.BatchNorm2d(self.dim[1]),
             nn.Conv2d(in_channels=self.dim[1], out_channels=self.dim[1], kernel_size=(3, 3), stride=(2, 2),
                       padding=(1, 1)),
-            nn.LayerNorm(16),
+            nn.BatchNorm2d(self.dim[1]),
             nn.ReLU(inplace=True)
         )
        # self.ptt_vit = ViT(img_dim=(64, 16), in_channels=self.dim[1], patch_dim=(8, 2), blocks=2,dim_head=64, classification=False)
         self.ptt_conv_block = ConvBlock(self.dim[1], self.dim[2])
-        self.dropout_2 = nn.Dropout2d(0.5638209250254641)
+        self.dropout_2 = nn.Dropout2d(config.dropout)
         self.adaptive_pool = nn.AdaptiveAvgPool2d((64, 128))
     def forward(self,x):
         batch, channel, length, height, width = x.shape
@@ -183,15 +186,15 @@ class BvpPlan(nn.Module):
         self.bvp_conv2d = nn.Sequential(
             nn.Conv2d(in_channels=self.dim[1], out_channels=self.dim[1], kernel_size=(1, 8), stride=(1, 1),
                       dilation=(1, 32)),
-            nn.LayerNorm(32),
+            nn.BatchNorm2d(self.dim[1]),
             nn.Conv2d(in_channels=self.dim[1], out_channels=self.dim[1], kernel_size=(3, 3), stride=(2, 2),
                       padding=(1, 1)),
-            nn.LayerNorm(16),
+            nn.BatchNorm2d(self.dim[1]),
             nn.ReLU(inplace=True)
         )
         # self.bvp_vit = ViT(img_dim=(64, 16), in_channels=self.dim[1], patch_dim=(8, 2), blocks=2,dim_head=64, classification=False)
         self.bvp_conv_block = ConvBlock(self.dim[1], self.dim[2])
-        self.dropout = nn.Dropout2d(0.5638209250254641)
+        self.dropout = nn.Dropout2d(config.dropout)
         self.adaptive_pool = nn.AdaptiveAvgPool2d((64, 128))
     def forward(self,x):
         batch, channel, length, height, width = x.shape
@@ -395,3 +398,89 @@ class ViT(nn.Module):
 
         # we index only the cls token for classification. nlp tricks :P
         return self.mlp_head(y[:, 0, :]) if self.classification else y[:, 1:, :]
+
+
+
+
+def main():
+    train_dataset = dataset_loader(model_name="PhysNet",option="train")
+    test_dataset = dataset_loader(model_name="PhysNet", option="test")
+    train_loader = DataLoader(train_dataset,
+                              batch_size=config.batch_size,
+                              shuffle=True)
+    test_loader = DataLoader(test_dataset,
+                             batch_size=config.batch_size,
+                             shuffle=True)
+    model = Seq_GCN()
+    model.cuda()
+    wandb.watch(model)
+    criterion = loss_fn("neg_pearson")
+    optim = optimizer(model.parameters(),config.learning_rate,config.optimizer)
+
+
+    iter = 0
+    for epoch in range(config.epochs):
+        for i, (images, labels) in enumerate(train_loader):
+
+            images = Variable(images)
+            labels = Variable(labels)
+
+            # Clear gradients w.r.t. parameters
+            optim.zero_grad()
+
+            # Forward pass to get output/logits
+            outputs = model(images)
+
+            # Calculate Loss: softmax --> cross entropy loss
+            loss = criterion(outputs, labels)
+
+            # Getting gradients w.r.t. parameters
+            loss.backward()
+
+            # Updating parameters
+            optim.step()
+
+            iter += 1
+
+            if iter % 100 == 0:
+                # Calculate Accuracy
+                correct = 0.0
+                correct_arr = [0.0] * 10
+                total = 0.0
+                total_arr = [0.0] * 10
+
+                # # Iterate through test dataset
+                for images, labels in test_loader:
+                    images = Variable(images)
+
+                    # Forward pass only to get logits/output
+                    outputs = model(images)
+
+                    loss = criterion(outputs, labels)
+
+                    # Get predictions from the maximum value
+                    # _, predicted = torch.max(outputs.data, 1)
+
+                    # Total number of labels
+                    total += 1
+                    correct += loss.item()
+                    # print(str(labels.size(0)))
+                    # print(str(total))
+                #
+                # accuracy = correct / total
+                loss = correct/total
+                # metrics{'total':total}
+                # metrics = {'accuracy': accuracy, 'loss': loss}
+                metrics = {'loss': loss}
+                # for label in range(10):
+                #     metrics['Accuracy ' + label_names[label]] = correct_arr[label] / total_arr[label]
+
+                wandb.log(metrics)
+
+                # Print Loss
+                # print('Iteration: {0} Loss: {1:.2f} Accuracy: {2:.2f}'.format(iter, loss, accuracy))
+                print('Iteration: {0} Loss: {1:.2f}'.format(iter, loss))
+    torch.save(model.state_dict(), os.path.join(wandb.run.dir, "model.pt"))
+
+if __name__ == '__main__':
+   main()

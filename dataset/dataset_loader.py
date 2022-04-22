@@ -8,7 +8,8 @@ from dataset.GCNDataset import GCNDataset
 from dataset.AxisNetDataset import AxisNetDataset
 from utils.funcs import load_list_of_dicts
 
-def dataset_loader(save_root_path: str = "/media/hdd1/dy_dataset/",
+
+def dataset_loader(save_root_path: str = "/media/hdd1/dy/dataset/",
                    model_name: str = "DeepPhys",
                    dataset_name: str = "UBFC",
                    option: str = "train"):
@@ -19,12 +20,13 @@ def dataset_loader(save_root_path: str = "/media/hdd1/dy_dataset/",
     :param option:[train, test]
     :return: dataset
     '''
-
+    cnt = 0
     flag = True
     name = model_name
-    if model_name == "GCN":
+    if model_name == "GCN" or model_name == "GCN_TEST":
         name = "PhysNet"
-    hpy_file = h5py.File(save_root_path + name + "_" + dataset_name + "_" + option + ".hdf5", "r")
+    hpy_train_file = h5py.File(save_root_path + name + "_" + dataset_name + "_" + "train" + ".hdf5", "r")
+    hpy_test_file = h5py.File(save_root_path + name + "_" + dataset_name + "_" + "test" + ".hdf5", "r")
     graph_file = save_root_path + model_name + "_" + dataset_name + "_" + option + ".pkl"
 
     if model_name in ["DeepPhys", "MTTS"]:
@@ -46,13 +48,22 @@ def dataset_loader(save_root_path: str = "/media/hdd1/dy_dataset/",
         video_data = []
         label_data = []
         bpm_data = []
-        for key in hpy_file.keys():
-            video_data.extend(hpy_file[key]['preprocessed_video'])
-            label_data.extend(hpy_file[key]['preprocessed_label'])
+        for key in hpy_train_file.keys():
+            video_data.extend(hpy_train_file[key]['preprocessed_video'])
+            label_data.extend(hpy_train_file[key]['preprocessed_label'])
             # bpm_data.extend(hpy_file[key]['preprocessed_bpm'])
-            if option == "test" or flag:
+            cnt +=1
+            if option == "test" or flag :
                 break
-        hpy_file.close()
+        hpy_train_file.close()
+        for key in hpy_test_file.keys():
+            video_data.extend(hpy_test_file[key]['preprocessed_video'])
+            label_data.extend(hpy_test_file[key]['preprocessed_label'])
+            # bpm_data.extend(hpy_file[key]['preprocessed_bpm'])
+            cnt +=1
+            if option == "test" or cnt == 3 :
+                break
+        hpy_test_file.close()
         if model_name in ["GCN"]:
             dataset = GCNDataset(video_data=np.asarray(video_data),
                                  label_data=np.asarray(label_data),

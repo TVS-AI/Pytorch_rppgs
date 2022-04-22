@@ -128,7 +128,7 @@ def preprocessing(save_root_path: str = "/media/hdd1/dy_dataset/",
             dset['dbp'] = return_dict[data_path]['dbp']
             dset['hr'] = return_dict[data_path]['hr']
         test_file.close()
-    elif model_name in ["GCN"]:
+    elif model_name in ["GCN","GCN_TEST"]:
         for index, data_path in enumerate(return_dict.keys()[:train]):
             dset = train_file.create_group(data_path)
             dset['preprocessed_video'] = return_dict[data_path]['preprocessed_video']

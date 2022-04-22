@@ -1,0 +1,16 @@
+program: wandb_train.py
+method: bayes
+metric:
+  goal: minimize
+  name: loss
+parameters:
+  dropout:
+    values: [0.1, 0.2, 0.4, 0.5, 0.7]
+  learning_rate:
+    min: 0.00001
+    max: 0.001
+  epochs:
+    value: 1000
+  optimizer:
+    values: ["adam","r_adam","ada_mw"]
+

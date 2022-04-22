@@ -12,7 +12,7 @@ def optimizer(model_params, learning_rate: float = 1, optim: str = "mse"):
     :return: selected optimizer object
     '''
     if optim == "adam":
-        return opt.Adam(model_params, learning_rate)
+        return opt.Adam(model_params, learning_rate,weight_decay=0.00005)
     elif optim == "sgd":
         return opt.SGD(model_params, learning_rate)
     elif optim == "rms_prop":
