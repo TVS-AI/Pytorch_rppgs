@@ -15,63 +15,69 @@ class TEST(nn.Module):
 
         self.main_seq_stem = nn.Sequential(
             Rearrange('b c l h w -> (b l) c h w'),
-            Conv2d_cd(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
-            Conv2d_cd(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
-            # nn.Conv2d(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
-            # nn.Conv2d(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
+            # Conv2d_cd(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
+            # Conv2d_cd(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
             Rearrange('(b l) c h w -> b c l (h w)', l=length)
         )
         self.main_seq_max_1 = nn.Sequential(
             MaxViT_layer(layer_depth=2, layer_dim_in=3, layer_dim=32,
                          kernel=(1,32),dilation=(1,32),padding=0,
-                         mbconv_expansion_rate=4, mbconv_shrinkage_rate=0.25, w=4, dim_head=32, dropout=0.1)
+                         mbconv_expansion_rate=4, mbconv_shrinkage_rate=0.25, w=4, dim_head=32, dropout=0.1,flag=False)
         )
         self.main_seq_max_2 = nn.Sequential(
             MaxViT_layer(layer_depth=1, layer_dim_in=32, layer_dim=64,
                          kernel=3, dilation=1, padding=1,
-                         mbconv_expansion_rate=4, mbconv_shrinkage_rate=0.25, w=4, dim_head=32, dropout=0.1)
+                         mbconv_expansion_rate=4, mbconv_shrinkage_rate=0.25, w=4, dim_head=32, dropout=0.1,flag=True)
         )
 
-        self.ptt_seq = nn.Sequential(
+        self.ptt_seq_stem = nn.Sequential(
             Rearrange('b c l h w -> (b h) c l w'),
-            Conv2d_cd(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
-            Conv2d_cd(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
-            # nn.Conv2d(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
-            # nn.Conv2d(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
-            Rearrange('(b h) c l w -> b c h (l w)', h=height),
+            # Conv2d_cd(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
+            # Conv2d_cd(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
+            Rearrange('(b h) c l w -> b c h (l w)', h=height)
+        )
+        self.ptt_seq_max_1 = nn.Sequential(
             MaxViT_layer(layer_depth=2, layer_dim_in=3, layer_dim=32,
                          kernel=(1,8),dilation=(1,32),padding=0,
-                         mbconv_expansion_rate=4, mbconv_shrinkage_rate=0.25, w=4, dim_head=32, dropout=0.1),
+                         mbconv_expansion_rate=4, mbconv_shrinkage_rate=0.25, w=4, dim_head=32, dropout=0.1,flag=True))
+        self.ptt_seq_max_2 = nn.Sequential(
             MaxViT_layer(layer_depth=2, layer_dim_in=32, layer_dim=64,
                          kernel=3, dilation=1, padding=1,
-                         mbconv_expansion_rate=4, mbconv_shrinkage_rate=0.25, w=4, dim_head=32, dropout=0.1),
-            Rearrange('b c h e -> b c (h e)'),
-            nn.AdaptiveAvgPool2d((64, 128))
+                         mbconv_expansion_rate=4, mbconv_shrinkage_rate=0.25, w=4, dim_head=32, dropout=0.1,flag=True),
+            # Rearrange('b c h e -> b c (h e)'),
+            # nn.AdaptiveAvgPool2d((64, 128))
         )
 
-        self.bvp_seq = nn.Sequential(
+        self.bvp_seq_stem = nn.Sequential(
             Rearrange('b c l h w -> (b w) c l h'),
-            Conv2d_cd(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
-            Conv2d_cd(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
-            # nn.Conv2d(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
-            # nn.Conv2d(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
-            Rearrange('(b w) c l h -> b c w (l h)', w=width),
+            # Conv2d_cd(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
+            # Conv2d_cd(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(in_channels=3, out_channels=3, kernel_size=3, stride=2, padding=1),
+            Rearrange('(b w) c l h -> b c w (l h)', w=width)
+        )
+        self.bvp_seq_max_1 = nn.Sequential(
             MaxViT_layer(layer_depth=2, layer_dim_in=3, layer_dim=32,
                          kernel=(1,8),dilation=(1,32),padding=0,
-                         mbconv_expansion_rate=4, mbconv_shrinkage_rate=0.25, w=4, dim_head=32, dropout=0.1),
+                         mbconv_expansion_rate=4, mbconv_shrinkage_rate=0.25, w=4, dim_head=32, dropout=0.1,flag=True))
+        self.bvp_seq_max_2 = nn.Sequential(
             MaxViT_layer(layer_depth=2, layer_dim_in=32, layer_dim=64,
                          kernel=3, dilation=1, padding=1,
-                         mbconv_expansion_rate=4, mbconv_shrinkage_rate=0.25, w=4, dim_head=32, dropout=0.1),
-            Rearrange('b c w e -> b c (w e)'),
-            nn.AdaptiveAvgPool2d((64,128))
+                         mbconv_expansion_rate=4, mbconv_shrinkage_rate=0.25, w=4, dim_head=32, dropout=0.1,flag=True),
+            # Rearrange('b c w e -> b c (w e)'),
+            # nn.AdaptiveAvgPool2d((64,128))
         )
-        self.max_vit = MaxViT_layer(layer_depth=2, layer_dim_in=64, layer_dim=128,
+        self.max_vit = MaxViT_layer(layer_depth=2, layer_dim_in=1, layer_dim=32,
                          kernel=3, dilation=1, padding=1,
-                         mbconv_expansion_rate=4, mbconv_shrinkage_rate=0.25, w=4, dim_head=32, dropout=0.1,)
+                         mbconv_expansion_rate=4, mbconv_shrinkage_rate=0.25, w=4, dim_head=32, dropout=0.1,flag=False)
         self.max_vit_2 = MaxViT_layer(layer_depth=2, layer_dim_in=128, layer_dim=256,
                                     kernel=3, dilation=1, padding=1,
                                     mbconv_expansion_rate=4, mbconv_shrinkage_rate=0.25, w=2, dim_head=32,
-                                    dropout=0.1, )
+                                    dropout=0.1,flag=True )
         # self.max_vit_gan_layer_1 = MaxVit_GAN_layer(layer_depth=1, layer_dim_in=64, layer_dim=32,
         #                                             mbconv_expansion_rate=4,
         #                                             mbconv_shrinkage_rate=0.25, w=2, dim_head=32, dropout=0.1,
@@ -91,22 +97,46 @@ class TEST(nn.Module):
         self.up_3 = UpBlock(32, 3)
         self.up_4 = UpBlock(3, 1)
 
+        self.sa_main = SpatialAttention()
+        self.sa_bvp = SpatialAttention()
+        self.sa_ptt = SpatialAttention()
 
+        self.adaptive = nn.AdaptiveAvgPool2d((32,16))
+        self.be_conv1d = nn.Conv1d(in_channels=32, out_channels=32, kernel_size=5, padding="same")
+        self.out_conv1d = nn.Conv1d(in_channels=32,out_channels=1,kernel_size=1)
+
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self,x):
         main = self.main_seq_stem(x)
         main = self.main_seq_max_1(main)
-        main = self.main_seq_max_2(main)
-        bvp = self.bvp_seq(x)
-        ptt = self.ptt_seq(x)
+        main = self.sa_main(main)
+        main = self.adaptive(main)
+        main = rearrange(main,'b c l (w h) -> b c l w h',w = 4, h = 4)
+        # main = self.main_seq_max_2(main)
 
-        out = []
-        batch, channel, length, e = main.shape
-        for i in range(length):
-            out.append(torch.unsqueeze(torch.cat([main[:, :, i, :], ptt, bvp], dim=2), dim=2))
-        out = torch.cat(out,dim=2)
-        out = self.max_vit(out)
-        out = self.adaptation(out)
+        bvp = self.bvp_seq_stem(x)
+        bvp = self.bvp_seq_max_1(bvp)
+        bvp = self.sa_bvp(bvp)
+        bvp = rearrange(bvp, 'b c w (l h) -> b c l w h', l=4, h=4)
+
+
+        ptt = self.ptt_seq_stem(x)
+        ptt = self.ptt_seq_max_1(ptt)
+        ptt = self.sa_bvp(ptt)
+        ptt = rearrange(ptt, 'b c h (l w) -> b c l w h', l=4, w=4)
+
+        att = ptt@bvp
+        main = main * F.interpolate(att,scale_factor=(8,1,1)) + main
+
+        # out = []
+        # batch, channel, length, e = main.shape
+        # for i in range(length):
+        #     out.append(torch.unsqueeze(torch.cat([main[:, :, i, :], ptt, bvp], dim=2), dim=2))
+        # out = torch.cat(out,dim=2)
+        main = rearrange(main,'b c l w h -> b c l (w h)')
+        out = self.max_vit(main)
+        # out = self.adaptation(out)
         # out = self.max_vit_2(out)
         # out = self.max_vit_gan_layer_1(out)
         # out = self.max_vit_gan_layer_2(out)
@@ -114,12 +144,16 @@ class TEST(nn.Module):
         # out = self.adaptation(out)
         # out = self.conv2d(out)
         # out = torch.squeeze(out)
-        out = self.up_1(out)
-        out = self.up_2(out)
-        out = self.up_3(out)
-        out = self.up_4(out)
+        # out = self.up_1(out)
+        # out = self.up_2(out)
+        # out = self.up_3(out)
+        # out = self.up_4(out)
         out = torch.squeeze(out)
-        return out
+        out = torch.mean(out,dim = -1)
+        out_att = self.be_conv1d(out)
+        out = (1 + self.sigmoid(out_att)) * out
+        out = self.out_conv1d(out)
+        return torch.squeeze(out)
 
 class UpBlock(nn.Module):
     def __init__(self,in_dim,out_dim):
@@ -234,3 +268,19 @@ class Conv2d_cd(nn.Module):
             out_diff = F.conv2d(input=x, weight=kernel_diff, bias=self.conv.bias, stride=self.conv.stride, padding=0, groups=self.conv.groups)
 
             return out_normal - self.theta *  out_diff
+
+
+class SpatialAttention(nn.Module):
+    def __init__(self, kernel=3):
+        super(SpatialAttention, self).__init__()
+
+        self.conv1 = nn.Conv2d(2, 1, kernel_size=kernel, padding=kernel // 2, bias=False)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        avg_out = torch.mean(x, dim=1, keepdim=True)
+        max_out, _ = torch.max(x, dim=1, keepdim=True)
+        x = torch.cat([avg_out, max_out], dim=1)
+        x = self.conv1(x)
+
+        return self.sigmoid(x)

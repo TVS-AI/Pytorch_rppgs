@@ -21,7 +21,7 @@ def dataset_loader(save_root_path: str = "/media/hdd1/dy/dataset/",
     :return: dataset
     '''
     cnt = 0
-    flag = True
+    flag = False
     name = model_name
     if model_name == "GCN" or model_name == "GCN_TEST":
         name = "PhysNet"
@@ -61,7 +61,7 @@ def dataset_loader(save_root_path: str = "/media/hdd1/dy/dataset/",
             label_data.extend(hpy_test_file[key]['preprocessed_label'])
             # bpm_data.extend(hpy_file[key]['preprocessed_bpm'])
             cnt +=1
-            if option == "test" or cnt == 3 :
+            if option == "test" or flag :
                 break
         hpy_test_file.close()
         if model_name in ["GCN"]:
