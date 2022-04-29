@@ -1,22 +1,33 @@
 {
     "__TIME__" : 0,
-    "__PREPROCESSING__" : 0,
+    "__PREPROCESSING__" : 1,
+    "preprocessing_comment" :
+            [
+                "0: NO",
+                "1: Preprocessing All",
+                "2: Preprocessing Image",
+                "3: Preprocessing Label"
+            ],
     "__MODEL_SUMMARY__" : 0,
     "options":{
         "parallel_criterion" : 1,
         "parallel_criterion_comment" : "TODO need to verification",
-        "set_gpu_device" : "9"
+        "set_gpu_device" : "0"
     },
     "params":
     {
         "save_root_path": "/media/hdd1/dy/dataset/",
         "data_root_path": "/media/hdd1/",
-        "dataset_name": "UBFC",
+        "dataset_name": "PURE",
         "dataset_comment" :
                 [
                     "UBFC",
+                    "cohface_all",
+                    "cohface_clean",
+                    "cohface_natural",
                     "cuff_less_blood_pressure",
-                    "VIPL_HR"
+                    "VIPL_HR",
+                    "PURE"
                 ],
         "checkpoint_path" : "/media/hdd1/dy/checkpoint/",
         "train_ratio": 0.7,
@@ -52,7 +63,7 @@
                     "ada_mw","a_sgd","lbfgs","n_adam","r_adam","rprop","sparse_adam",
                     "PPNET : adam"
                 ],
-        "learning_rate": 0.0001,
+        "learning_rate": 0.001,
         "learning_rate_comment": [
             "DeepPhys : lr = 1",
             "PhysNet : lr = 0.001",
@@ -67,7 +78,7 @@
     },
     "model_params":
     {
-        "name": "GCN",
+        "name": "PhysNet",
         "name_comment":
                 [
                     "DeepPhys",

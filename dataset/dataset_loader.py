@@ -48,17 +48,40 @@ def dataset_loader(save_root_path: str = "/media/hdd1/dy/dataset/",
         video_data = []
         label_data = []
         bpm_data = []
+        video_tmp = []
+        label_tmp = []
         for key in hpy_train_file.keys():
-            video_data.extend(hpy_train_file[key]['preprocessed_video'])
-            label_data.extend(hpy_train_file[key]['preprocessed_label'])
+            # print("load")
+            video_tmp = np.asarray(hpy_train_file[key]['preprocessed_video'])
+            _,length,height,width,channel = video_tmp.shape
+            if length != 32:
+                video_tmp = np.reshape(video_tmp,(-1,32,height,width,channel))
+            video_data.extend(video_tmp)
+            label_tmp = np.asarray(hpy_train_file[key]['preprocessed_label'])
+            _,length = label_tmp.shape
+            if length != 32:
+                label_tmp = np.reshape(label_tmp,(-1,32))
+            label_data.extend(label_tmp)
+            # video_data.extend(hpy_train_file[key]['preprocessed_video'].astype(np.uint))
+            # label_data.extend(hpy_train_file[key]['preprocessed_label'])
             # bpm_data.extend(hpy_file[key]['preprocessed_bpm'])
             cnt +=1
             if option == "test" or flag :
                 break
         hpy_train_file.close()
         for key in hpy_test_file.keys():
-            video_data.extend(hpy_test_file[key]['preprocessed_video'])
-            label_data.extend(hpy_test_file[key]['preprocessed_label'])
+            video_tmp = np.asarray(hpy_test_file[key]['preprocessed_video'])
+            _,length,height,width,channel = video_tmp.shape
+            if length != 32:
+                video_tmp = np.reshape(video_tmp,(-1,32,height,width,channel))
+            video_data.extend(video_tmp)
+            label_tmp = np.asarray(hpy_test_file[key]['preprocessed_label'])
+            _,length = label_tmp.shape
+            if length != 32:
+                label_tmp = np.reshape(label_tmp,(-1,32))
+            label_data.extend(label_tmp)
+            # video_data.extend(hpy_test_file[key]['preprocessed_video'])
+            # label_data.extend(hpy_test_file[key]['preprocessed_label'])
             # bpm_data.extend(hpy_file[key]['preprocessed_bpm'])
             cnt +=1
             if option == "test" or flag :

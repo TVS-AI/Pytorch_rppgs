@@ -3,10 +3,14 @@ import torch
 import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 
+from utils.image_preprocess import video_normalize
+
 
 class GCNDataset(Dataset):
     def __init__(self, video_data, label_data,bpm_data):
-        self.transform = transforms.Compose([transforms.ToTensor()])
+        # self.transform = transforms.Compose([transforms.ToTensor(),
+        #                                      transforms.Normalize(mean=[0.485, 0.456, 0.406],
+        #                                                           std=[0.229, 0.224, 0.225])])
         # self.video_data = np.resize(video_data,(video_data.shape[0],64,256,3))
         # self.video_data = video_data.repeat(2,axis=2).repeat(2,axis=3)
         self.video_data = video_data
@@ -18,6 +22,7 @@ class GCNDataset(Dataset):
     def __getitem__(self, index):
         if torch.is_tensor(index):
             index = index.tolist()
+
         # video_data = torch.tensor(self.video_data[index],dtype=torch.float32)
         video_data = torch.tensor(np.transpose(self.video_data[index], (3,0,1,2)), dtype=torch.float32)
         label_data = torch.tensor(self.label[index], dtype=torch.float32)

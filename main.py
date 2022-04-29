@@ -84,8 +84,8 @@ dataset = dataset_loader(save_root_path=params["save_root_path"],
 #                               option="test")
 if not K_Fold_flag:
     dataset_len = len(dataset)
-    train_len = int(np.floor(dataset_len * 0.64))
-    val_len = int(np.floor(dataset_len * 0.2))
+    train_len = int(np.floor(dataset_len * 0.84))
+    val_len = int(np.floor(dataset_len * 0.1))
     test_len = dataset_len - train_len - val_len
 
     train_dataset, validation_dataset, test_dataset = random_split(dataset, [train_len,val_len,test_len])

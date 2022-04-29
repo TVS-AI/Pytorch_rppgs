@@ -1,6 +1,13 @@
 import numpy as np
 from sklearn.preprocessing import minmax_scale
-
+import h5py
+from scipy.signal import resample,resample_poly,decimate
+import cv2
+from utils.funcs import detrend
+import csv
+from biosppy.signals import bvp
+import math
+import json
 def Deepphys_preprocess_Label(path):
     '''
     :param path: label file path
@@ -26,27 +33,69 @@ def Deepphys_preprocess_Label(path):
     return delta_pulse
 
 
-def PhysNet_preprocess_Label(path):
+def PhysNet_preprocess_Label(path,frame_total):
     '''
     :param path: label file path
     :return: wave form
     '''
     set = 64
-    div = 64
+    div = 32
     # Load input
-    f = open(path, 'r')
-    f_read = f.read().split('\n')
-    label = ' '.join(f_read[0].split()).split()
-    label = list(map(float, label))
-    label = np.array(label).astype('float32')
-    split_raw_label = np.zeros(((len(label) - div + 1), div))
-    index = 0
-    for i in range(0,(len(label) - div + 1),div):
-        split_raw_label[i] = label[i:i + div]
-        # index = index + div
-    f.close()
+    if path.__contains__("hdf5"):
+        f = h5py.File(path,'r')
+        label = np.asarray(f['pulse'])
+        # label = decimate(label,int(len(label)/frame_total))
+        label_bvp = bvp.bvp(label, 256, show=False)
+        label = label_bvp['filtered']
 
-    return split_raw_label
+
+        label = smooth(label,128)
+        label = resample_poly(label,15,128)
+        # label = resample(label,frame_total)
+        # label = detrend(label,100)
+
+        start = label_bvp['onsets'][3]
+        end = label_bvp['onsets'][-2]
+        label = label[start:end]
+        # plt.plot(label)
+        # label = resample(label,frame_total)
+        label -= np.mean(label)
+        label /= np.std(label)
+        start = math.ceil(start/32)
+        end = math.floor(end / 32)
+
+    elif path.__contains__("json"):
+        name = path.split("/")
+        label = []
+        with open(path[:-4]+name[-2]+".json") as json_file:
+            json_data = json.load(json_file)
+            for data in json_data['/FullPackage']:
+                label.append(data['Value']['waveform'])
+        label = resample(label,len(label)//2)
+    elif path.__contains__("csv"):
+        f = open(path,'r')
+        rdr = csv.reader(f)
+        r = list(rdr)
+        label = np.asarray(r[1:]).reshape((-1)).astype(np.float)
+
+        f_time = open(path[:-8]+"time.txt",'r')
+        f_time = f_time.read().split('\n')
+        time = np.asarray(f_time[:-1]).astype(np.float)
+        print("a")
+
+    else:
+        f = open(path, 'r')
+        f_read = f.read().split('\n')
+        label = ' '.join(f_read[0].split()).split()
+        label = list(map(float, label))
+        label = np.array(label).astype('float32')
+    split_raw_label = np.zeros(((len(label) // 32), 32))
+    index = 0
+    for i in range(len(label) // 32):
+        split_raw_label[i] = label[index:index + 32]
+        index = index + 32
+
+    return split_raw_label,0,-1
 
 def GCN_preprocess_Label(path,sliding_window_stride):
     '''
@@ -112,3 +161,8 @@ def Axis_preprocess_Label(path,sliding_window_stride,num_frames,clip_size = 256)
     f.close()
 
     return split_raw_label
+
+def smooth(y, box_pts):
+    box = np.ones(box_pts)/box_pts
+    y_smooth = np.convolve(y, box, mode='same')
+    return y_smooth

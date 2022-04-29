@@ -56,6 +56,25 @@ def preprocessing(save_root_path: str = "/media/hdd1/dy_dataset/",
         ground_truth_name = "/wave.csv"
 
         print(person_list)
+    elif dataset_name.__contains__("cohface"):
+        dataset_root_path = data_root_path + "cohface"
+        protocol = dataset_root_path + "/" + "protocols/"
+        if dataset_name.__contains__("all"):
+            protocol += "all/all.txt"
+        elif dataset_name.__contains__("clean"):
+            protocol += "clean/all.txt"
+        elif dataset_name.__contains__("natural"):
+            protocol += "natural/all.txt"
+        f = open(protocol,'r')
+        data_list = f.readlines()
+        data_list = [path.replace("data\n","") for path in data_list]
+        f.close()
+        vid_name = "data.mkv"
+        ground_truth_name = "data.hdf5"
+    elif dataset_name.__contains__("PURE"):
+        data_list = os.listdir(dataset_root_path)
+        vid_name = "/png"
+        ground_truth_name = "/json"
 
     process = []
 
@@ -63,7 +82,7 @@ def preprocessing(save_root_path: str = "/media/hdd1/dy_dataset/",
     if split_flag == False:
         for index, data_path in enumerate(data_list):
             proc = multiprocessing.Process(target=preprocess_Dataset,
-                                           args=(dataset_root_path + "/" + data_path, vid_name, ground_truth_name, 1,
+                                           args=(dataset_root_path + "/" + data_path, vid_name, ground_truth_name, 2,
                                                  model_name, return_dict))
             # (path, vid_name, ground_truth_name, flag, model_name, return_dict):
             # flag 0 : pass
@@ -81,7 +100,7 @@ def preprocessing(save_root_path: str = "/media/hdd1/dy_dataset/",
         for i in range(loop):
             for index, data_path in enumerate(data_list[i*32:(i+1)*32]):
                 proc = multiprocessing.Process(target=preprocess_Dataset,
-                                               args=(dataset_root_path + "/" + data_path, vid_name, ground_truth_name, 1, model_name, return_dict))
+                                               args=(dataset_root_path + "/" + data_path, vid_name, ground_truth_name, 2, model_name, return_dict))
                 # flag 0 : pass
                 # flag 1 : detect face
                 # flag 2 : remove nose
@@ -194,7 +213,7 @@ def preprocess_Dataset(path, vid_name, ground_truth_name, flag, model_name, retu
     if model_name == "DeepPhys":
         rst, preprocessed_video = Deepphys_preprocess_Video(path + vid_name, flag)
     elif model_name == "PhysNet" or model_name == "PhysNet_LSTM":
-        rst, preprocessed_video = PhysNet_preprocess_Video(path + vid_name, flag)
+        rst, preprocessed_video,frame_total = PhysNet_preprocess_Video(path + vid_name, flag)
     elif model_name == "RTNet":
         rst, preprocessed_video = RTNet_preprocess_Video(path + vid_name, flag)
     elif model_name == "PPNet":  # Sequence data based
@@ -213,16 +232,21 @@ def preprocess_Dataset(path, vid_name, ground_truth_name, flag, model_name, retu
     if model_name == "DeepPhys":
         preprocessed_label = Deepphys_preprocess_Label(path + ground_truth_name)
     elif model_name == "PhysNet" or model_name == "PhysNet_LSTM":
-        preprocessed_label = PhysNet_preprocess_Label(path + ground_truth_name)
+        preprocessed_label,start,end = PhysNet_preprocess_Label(path + ground_truth_name, frame_total)
+        # preprocessed_label = PhysNet_preprocess_Label(path + ground_truth_name, frame_total)
     elif model_name == "GCN":
         preprocessed_label = GCN_preprocess_Label(path + ground_truth_name, sliding_window_stride)
     elif model_name == "AxisNet":
         preprocessed_label = Axis_preprocess_Label(path + ground_truth_name, sliding_window_stride, num_frames)
 
+
+
+
+
     # ppg, sbp, dbp, hr
     if model_name in ["DeepPhys", "PhysNet", "PhysNet_LSTM"]:
-        return_dict[path.replace('/','')] = {'preprocessed_video': preprocessed_video,
-                                            'preprocessed_label': preprocessed_label}
+        return_dict[path.replace('/','')] = {'preprocessed_video': preprocessed_video[start:end],
+                                            'preprocessed_label': preprocessed_label[start:end]}
     elif model_name in ["PPNet"]:
         return_dict[path.replace('/','')] = {'ppg': ppg, 'sbp': sbp, 'dbp': dbp, 'hr': hr}
     elif model_name in ["GCN"]:
