@@ -8,6 +8,22 @@ import csv
 from biosppy.signals import bvp
 import math
 import json
+from biosppy.signals import ppg
+from scipy.signal import butter, sosfilt, sosfreqz
+from biosppy import plotting
+import matplotlib.pyplot as plt
+
+# from __future__ import absolute_import, division, print_function
+from six.moves import range
+
+# 3rd party
+import numpy as np
+
+# local
+from biosppy import tools as st
+from biosppy import ppg
+from biosppy import plotting, utils
+
 def Deepphys_preprocess_Label(path):
     '''
     :param path: label file path
@@ -33,7 +49,7 @@ def Deepphys_preprocess_Label(path):
     return delta_pulse
 
 
-def PhysNet_preprocess_Label(path,frame_total):
+def PhysNet_preprocess_Label(path):
     '''
     :param path: label file path
     :return: wave form
@@ -67,11 +83,18 @@ def PhysNet_preprocess_Label(path,frame_total):
     elif path.__contains__("json"):
         name = path.split("/")
         label = []
+        label_time = []
+        time = []
         with open(path[:-4]+name[-2]+".json") as json_file:
             json_data = json.load(json_file)
             for data in json_data['/FullPackage']:
                 label.append(data['Value']['waveform'])
-        label = resample(label,len(label)//2)
+                label_time.append(data['Timestamp'])
+            for data in json_data['/Image']:
+                time.append(data['Timestamp'])
+            print(str(len(label)) + path)
+
+        # label = resample(label,len(label)//2)
     elif path.__contains__("csv"):
         f = open(path,'r')
         rdr = csv.reader(f)
@@ -81,7 +104,6 @@ def PhysNet_preprocess_Label(path,frame_total):
         f_time = open(path[:-8]+"time.txt",'r')
         f_time = f_time.read().split('\n')
         time = np.asarray(f_time[:-1]).astype(np.float)
-        print("a")
 
     else:
         f = open(path, 'r')
@@ -89,11 +111,51 @@ def PhysNet_preprocess_Label(path,frame_total):
         label = ' '.join(f_read[0].split()).split()
         label = list(map(float, label))
         label = np.array(label).astype('float32')
-    split_raw_label = np.zeros(((len(label) // 32), 32))
+
+    # sos = butter_bandpass(0.3, 3, 60, order=10)
+    # w, h = sosfreqz(sos, worN=2000)
+    # label = butter_bandpass_filter(label,0.3,2,60,order=10)
+    # ppg.find_onsets_elgendi2013()
+    label = resample(label, len(time))
+
+    label = detrend(label,100)
+    label = smooth(label, 5)
+    # label = smooth(label,10)
+
+    bvp_data = bvp(label,30,show=False)
+    label = bvp_data['filtered']
+    onesets = bvp_data['onsets']
+    #기울기로 거르기?
+    max_val = 0
+    min_val = 0
+    for i in range(len(onesets)-1):
+        tmp_max = max(label[onesets[i]:onesets[i+1]])
+        tmp_min = min(label[onesets[i]:onesets[i+1]])
+        if tmp_min < min_val:
+            min_val = tmp_min
+        if tmp_max > max_val:
+            max_val = tmp_max
+
+    for i in range(len(onesets)-1):
+        max_set = max(label[onesets[i]:onesets[i+1]])
+        min_set = min(label[onesets[i]:onesets[i+1]])
+        # val = max_val + math.fabs(min_val)
+        # label[onesets[i]:onesets[i + 1]] = [(l +(math.fabs(min_val)))/val for l in label[onesets[i]:onesets[i + 1]]]
+        label[onesets[i]:onesets[i + 1]] = [l/max_set*max_val if l>0 else l/min_set*min_val for l in label[onesets[i]:onesets[i+1]] ]
+        # label[onesets[i]:onesets[i + 1]] = [ for l in label[onesets[i]:onesets[i+1]] if l>0]
+        # label[onesets[i]:onesets[i + 1]] = [if label[onesets[i]:onesets[i+1]]>]
+        # label[onesets[i]:onesets[i+1]] -= np.mean(label[onesets[i]:onesets[i+1]])
+        # label[onesets[i]:onesets[i+1]] /= np.std(label[onesets[i]:onesets[i+1]])
+    label[onesets[0]:onesets[-1]] -= np.mean(label[onesets[0]:onesets[-1]])
+    label[onesets[0]:onesets[-1]] /= np.std(label[onesets[0]:onesets[-1]])
+    # label[onesets[0]:onesets[-1]] = smooth(label[onesets[0]:onesets[-1]], 5)
+
+
+    split_raw_label = np.zeros(((len(label) // 16)-1, 32))
     index = 0
-    for i in range(len(label) // 32):
+    for i in range(len(label) // 16 -1):
         split_raw_label[i] = label[index:index + 32]
-        index = index + 32
+        index = index + 16
 
     return split_raw_label,0,-1
 
@@ -166,3 +228,92 @@ def smooth(y, box_pts):
     box = np.ones(box_pts)/box_pts
     y_smooth = np.convolve(y, box, mode='same')
     return y_smooth
+
+def butter_bandpass(lowcut, highcut, fs, order=5):
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    high = highcut / nyq
+    sos = butter(order, [low, high], analog=False, btype='band', output='sos')
+    return sos
+
+
+def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
+    sos = butter_bandpass(lowcut, highcut, fs, order=order)
+    y = sosfilt(sos, data)
+    return y
+
+def bvp(signal=None, sampling_rate=1000., path=None, show=True):
+    """Process a raw BVP signal and extract relevant signal features using
+    default parameters.
+    Parameters
+    ----------
+    signal : array
+        Raw BVP signal.
+    sampling_rate : int, float, optional
+        Sampling frequency (Hz).
+    path : str, optional
+        If provided, the plot will be saved to the specified file.
+    show : bool, optional
+        If True, show a summary plot.
+    Returns
+    -------
+    ts : array
+        Signal time axis reference (seconds).
+    filtered : array
+        Filtered BVP signal.
+    onsets : array
+        Indices of BVP pulse onsets.
+    heart_rate_ts : array
+        Heart rate time axis reference (seconds).
+    heart_rate : array
+        Instantaneous heart rate (bpm).
+    """
+
+    # check inputs
+    if signal is None:
+        raise TypeError("Please specify an input signal.")
+
+    # ensure numpy
+    signal = np.array(signal)
+
+    sampling_rate = float(sampling_rate)
+
+    # filter signal
+    filtered, _, _ = st.filter_signal(signal=signal,
+                                      ftype='butter',
+                                      band='bandpass',
+                                      order=10,
+                                      frequency=[0.4, 3],
+                                      sampling_rate=sampling_rate)
+
+    # find onsets
+    onsets,_ = ppg.find_onsets_elgendi2013(signal=signal, sampling_rate=sampling_rate)
+
+    # compute heart rate
+    hr_idx, hr = st.get_heart_rate(beats=onsets,
+                                   sampling_rate=sampling_rate,
+                                   smooth=True,
+                                   size=3)
+
+    # get time vectors
+    length = len(signal)
+    T = (length - 1) / sampling_rate
+    ts = np.linspace(0, T, length, endpoint=False)
+    ts_hr = ts[hr_idx]
+
+    # plot
+    if show:
+        plotting.plot_bvp(ts=ts,
+                          raw=signal,
+                          filtered=signal,
+                          onsets=onsets,
+                          heart_rate_ts=ts_hr,
+                          heart_rate=hr,
+                          path=path,
+                          show=True)
+
+    # output
+    args = (ts, signal, onsets, ts_hr, hr)
+    names = ('ts', 'filtered', 'onsets', 'heart_rate_ts', 'heart_rate')
+
+    return utils.ReturnTuple(args, names)

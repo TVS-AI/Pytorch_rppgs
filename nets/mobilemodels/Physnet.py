@@ -681,7 +681,6 @@ im2 = tf.cast(im2,tf.float32)
 im1 = tf.expand_dims(im1,axis=0)
 im2 = tf.expand_dims(im2,axis=0)
 b = preprocess(img1=im1,img2=im2)
-print("A")
 # infer = interpreter.get_signature_runner("infer")
 # for x, _ in train_ds:
 #     x = tf.cast(x, tf.float32)

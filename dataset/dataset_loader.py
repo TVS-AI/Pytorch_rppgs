@@ -1,6 +1,6 @@
 import h5py
 import numpy as np
-
+from tqdm import tqdm
 from dataset.DeepPhysDataset import DeepPhysDataset
 from dataset.PPNetDataset import PPNetDataset
 from dataset.PhysNetDataset import PhysNetDataset
@@ -25,10 +25,13 @@ def dataset_loader(save_root_path: str = "/media/hdd1/dy/dataset/",
     name = model_name
     if model_name == "GCN" or model_name == "GCN_TEST":
         name = "PhysNet"
-    hpy_train_file = h5py.File(save_root_path + name + "_" + dataset_name + "_" + "train" + ".hdf5", "r")
-    hpy_test_file = h5py.File(save_root_path + name + "_" + dataset_name + "_" + "test" + ".hdf5", "r")
-    graph_file = save_root_path + model_name + "_" + dataset_name + "_" + option + ".pkl"
-
+    hpy_train_img_file = h5py.File(save_root_path + name + "_" + dataset_name + "_image_train.hdf5", "r")
+    hpy_train_label_file = h5py.File(save_root_path + name + "_" + dataset_name + "_label_train.hdf5", "r")
+    hpy_test_img_file = h5py.File(save_root_path + name + "_" + dataset_name + "_image_test.hdf5", "r")
+    hpy_test_label_file = h5py.File(save_root_path + name + "_" + dataset_name + "_label_test.hdf5", "r")
+    # graph_file = save_root_path + model_name + "_" + dataset_name + "_" + option + ".pkl"
+    # hpy_train_file = h5py.File(save_root_path + name + "_" + dataset_name + "_" + "train" + ".hdf5", "r")
+    # hpy_test_file = h5py.File(save_root_path + name + "_" + dataset_name + "_" + "test" + ".hdf5", "r")
     if model_name in ["DeepPhys", "MTTS"]:
         appearance_data = []
         motion_data = []
@@ -50,43 +53,62 @@ def dataset_loader(save_root_path: str = "/media/hdd1/dy/dataset/",
         bpm_data = []
         video_tmp = []
         label_tmp = []
-        for key in hpy_train_file.keys():
-            # print("load")
-            video_tmp = np.asarray(hpy_train_file[key]['preprocessed_video'])
-            _,length,height,width,channel = video_tmp.shape
-            if length != 32:
-                video_tmp = np.reshape(video_tmp,(-1,32,height,width,channel))
-            video_data.extend(video_tmp)
-            label_tmp = np.asarray(hpy_train_file[key]['preprocessed_label'])
-            _,length = label_tmp.shape
-            if length != 32:
-                label_tmp = np.reshape(label_tmp,(-1,32))
-            label_data.extend(label_tmp)
-            # video_data.extend(hpy_train_file[key]['preprocessed_video'].astype(np.uint))
-            # label_data.extend(hpy_train_file[key]['preprocessed_label'])
-            # bpm_data.extend(hpy_file[key]['preprocessed_bpm'])
-            cnt +=1
-            if option == "test" or flag :
-                break
-        hpy_train_file.close()
-        for key in hpy_test_file.keys():
-            video_tmp = np.asarray(hpy_test_file[key]['preprocessed_video'])
-            _,length,height,width,channel = video_tmp.shape
-            if length != 32:
-                video_tmp = np.reshape(video_tmp,(-1,32,height,width,channel))
-            video_data.extend(video_tmp)
-            label_tmp = np.asarray(hpy_test_file[key]['preprocessed_label'])
-            _,length = label_tmp.shape
-            if length != 32:
-                label_tmp = np.reshape(label_tmp,(-1,32))
-            label_data.extend(label_tmp)
-            # video_data.extend(hpy_test_file[key]['preprocessed_video'])
-            # label_data.extend(hpy_test_file[key]['preprocessed_label'])
-            # bpm_data.extend(hpy_file[key]['preprocessed_bpm'])
-            cnt +=1
-            if option == "test" or flag :
-                break
-        hpy_test_file.close()
+        # for key in hpy_train_file.keys():
+        #     video_data.extend(hpy_train_file[key]['preprocessed_video'])
+        #     label_data.extend(hpy_train_file[key]['preprocessed_label'])
+        #     # bpm_data.extend(hpy_file[key]['preprocessed_bpm'])
+        #     cnt +=1
+        #     if option == "test" or flag :
+        #         break
+        # hpy_train_file.close()
+        # for key in hpy_test_file.keys():
+        #     video_data.extend(hpy_test_file[key]['preprocessed_video'])
+        #     label_data.extend(hpy_test_file[key]['preprocessed_label'])
+        #     # bpm_data.extend(hpy_file[key]['preprocessed_bpm'])
+        #     cnt +=1
+        #     if option == "test" or cnt == 3 :
+        #     # if option == "test" or flag :
+        #         break
+        # hpy_test_file.close()
+
+        with tqdm(total=hpy_train_img_file.keys().__len__(),position=0,leave=True,desc="train_img") as pbar:
+            for key in hpy_train_img_file.keys():
+                # print("load")
+                video_tmp = np.asarray(hpy_train_img_file[key]['preprocessed_video'][2:-2])
+                _,length,height,width,channel = video_tmp.shape
+                if length != 32:
+                    video_tmp = np.reshape(video_tmp,(-1,32,height,width,channel))
+                video_data.extend(video_tmp)
+                pbar.update(1)
+            hpy_train_img_file.close()
+        with tqdm(total=hpy_test_img_file.keys().__len__(), position=0, leave=True,desc="test_img") as pbar:
+            for key in hpy_test_img_file.keys():
+                video_tmp = np.asarray(hpy_test_img_file[key]['preprocessed_video'][2:-2])
+                _, length, height, width, channel = video_tmp.shape
+                if length != 32:
+                    video_tmp = np.reshape(video_tmp, (-1, 32, height, width, channel))
+                video_data.extend(video_tmp)
+                pbar.update(1)
+            hpy_test_img_file.close()
+        with tqdm(total=hpy_train_label_file.keys().__len__(), position=0, leave=True,desc="train_label") as pbar:
+            for key in hpy_train_label_file.keys():
+                label_tmp = np.asarray(hpy_train_label_file[key]['preprocessed_label'][2:-2])
+                _,length = label_tmp.shape
+                label_data.extend(label_tmp)
+                if option == "test" or flag :
+                    break
+                pbar.update(1)
+            hpy_train_label_file.close()
+        with tqdm(total=hpy_test_label_file.keys().__len__(), position=0, leave=True,desc="test_label") as pbar:
+            for key in hpy_test_label_file.keys():
+                label_tmp = np.asarray(hpy_test_label_file[key]['preprocessed_label'][2:-2])
+                _,length = label_tmp.shape
+                label_data.extend(label_tmp)
+                if option == "test" or flag :
+                    break
+                pbar.update(1)
+            hpy_test_label_file.close()
+
         if model_name in ["GCN"]:
             dataset = GCNDataset(video_data=np.asarray(video_data),
                                  label_data=np.asarray(label_data),

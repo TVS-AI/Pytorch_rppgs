@@ -92,8 +92,7 @@ def PhysNet_preprocess_Video(path, flag):
                 results = face_detection.process(frame)
                 if len(results.detections) > 0:
                     bbox = results.detections[0].location_data.relative_bounding_box
-                    crop_frame = frame[int(height * bbox.ymin):int(height * (bbox.ymin + bbox.height)),
-                                 int(width * bbox.xmin):int(width * (bbox.xmin + bbox.width))]
+                    crop_frame = frame[int(height * (1)* bbox.ymin):int(height *(bbox.ymin + bbox.height)),int(width * bbox.xmin*1.05):int(width * (bbox.xmin + bbox.width)*0.96)]
                 else:
                     mask = np.zeros(frame.shape[:2], dtype="uint8")
                     crop_frame = cv2.bitwise_and(frame, frame, mask=mask)
@@ -103,7 +102,6 @@ def PhysNet_preprocess_Video(path, flag):
                 raw_video[j] = crop_frame
                 j += 1
             # pbar.update(1)
-        print("END")
         # cap.release()
 
         # for img in data:
@@ -157,8 +155,6 @@ def PhysNet_preprocess_Video(path, flag):
         #
         #     raw_video[j] = crop_frame
         #     j += 1
-
-        print("A")
     else:
         cap = cv2.VideoCapture(path)
         frame_total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -250,11 +246,11 @@ def PhysNet_preprocess_Video(path, flag):
         #         pbar.update(1)
         #     cap.release()
 
-    split_raw_video = np.zeros(((frame_total // 32), 32, 128, 128, 3))
+    split_raw_video = np.zeros(((frame_total // 16)-1, 32, 128, 128, 3))
     index = 0
-    for x in range(frame_total // 32):
+    for x in range(frame_total // 16-1 ):
         split_raw_video[x] = raw_video[index:index + 32]
-        index = index + div
+        index = index + 16
 
     return True, split_raw_video, frame_total
 

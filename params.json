@@ -1,6 +1,6 @@
 {
     "__TIME__" : 0,
-    "__PREPROCESSING__" : 1,
+    "__PREPROCESSING__" : 0,
     "preprocessing_comment" :
             [
                 "0: NO",
@@ -12,7 +12,7 @@
     "options":{
         "parallel_criterion" : 1,
         "parallel_criterion_comment" : "TODO need to verification",
-        "set_gpu_device" : "0"
+        "set_gpu_device" : "1"
     },
     "params":
     {
@@ -40,7 +40,7 @@
                     "PhysNet_LSTM : 8",
                     "PPNET :  100"
                 ],
-        "train_shuffle" : 1,
+        "train_shuffle" : 0,
         "test_batch_size" : 200,
         "test_shuffle" : 0
     },
@@ -78,7 +78,7 @@
     },
     "model_params":
     {
-        "name": "PhysNet",
+        "name": "GCN",
         "name_comment":
                 [
                     "DeepPhys",
